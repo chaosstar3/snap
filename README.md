@@ -32,3 +32,4 @@ But behavior is based on only left/right half of screen.
 
 - inspired by [spectacle](https://github.com/eczarny/spectacle)
 - consider alternative [PowerToys FancyZones](https://github.com/microsoft/PowerToys)
+- similar work [fts_winsnap](https://github.com/forrestthewoods/fts_winsnap)
