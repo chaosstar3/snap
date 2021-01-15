@@ -27,4 +27,4 @@ static void dprintrect(const char* name, LPRECT lpRect) {
 #define dprintrect(name, rect)
 #endif
 
-#define TRACE(err) dprintf("[%s:%d] %d %d", __func__, __LINE__, err, GetLastError())
+#define TRACE(msg) dprintf("[%s:%d] %s %d", __func__, __LINE__, msg, GetLastError())

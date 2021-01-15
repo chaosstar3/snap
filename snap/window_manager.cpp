@@ -9,14 +9,14 @@ void WindowManager::snap_window(SNAP_TYPE type) {
 	HWND window = GetForegroundWindow();
 
 	if (!window) {
-		TRACE(-0x10);
+		TRACE("GetForegroundWindow() failed");
 		return;
 	}
 
 	HMONITOR monitor = MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST);
 
 	if (!monitor) {
-		TRACE(-0x20);
+		TRACE("MonitorFromWindow() failed");
 		return;
 	}
 
@@ -24,19 +24,19 @@ void WindowManager::snap_window(SNAP_TYPE type) {
 	minfo.cbSize = sizeof(MONITORINFO);
 
 	if (!GetMonitorInfo(monitor, &minfo)) {
-		TRACE(-0x21);
+		TRACE("GetMonitorInfo() failed");
 		return;
 	}
 
 	RECT mon_rect, win_rect, cli_rect, new_rect;
 
 	if (!GetWindowRect(window, &win_rect)) {
-		TRACE(-0x11);
+		TRACE("GetWindowRect() failed");
 		return;
 	}
 
 	if (!GetClientRect(window, &cli_rect)) {
-		TRACE(-0x12);
+		TRACE("GetClientRect() failed");
 		return;
 	}
 
@@ -101,7 +101,7 @@ void WindowManager::snap_window(SNAP_TYPE type) {
 	dprintrect("new", &new_rect);
 
 	if (!SetWindowPos(window, NULL, new_rect.left, new_rect.top, RECT_WIDTH(&new_rect), RECT_HEIGHT(&new_rect), 0)) {
-		TRACE(-0x18);
+		TRACE("SetWindowPos() failed");
 		return;
 	}
 

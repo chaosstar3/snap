@@ -14,6 +14,7 @@ But behavior is based on only left/right half of screen.
 
 - Use <kbd>win</kbd>+<kbd>arrow</kbd> to put window in that direction.
 - Repeat to use to adjust window size: *half, 1/3, 2/3*
+- Use trayicon to Quit
 
 ### Keyboard shortcut
 
@@ -25,8 +26,6 @@ But behavior is based on only left/right half of screen.
 | <kbd>win</kbd>+<kbd>↓</kbd> | lower  |
 | <kbd>win</kbd>+<kbd>shift</kbd> + <kbd>↑</kbd> | full |
 | <kbd>win</kbd>+<kbd>shift</kbd> + <kbd>↓</kbd> | landscape: horizontal center<br>portrait: vertical center |
-| | |
-| (temporary) <kbd>win</kbd> + <kbd>shift</kbd> + <kbd>alt</kbd> + <kbd>↑</kbd> | quit this program |
 
 ## Credit
 
