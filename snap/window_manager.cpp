@@ -59,8 +59,13 @@ void WindowManager::snap_window(SNAP_TYPE type, SNAP_BASE base) {
 				last_snap.type == type &&
 				last_snap.base == base &&
 				RECT_EQ(&last_snap.rect, &win_rect)) {
-		snap_repeat = (last_snap.index + 1) % 3;
+		snap_repeat = (last_snap.repeat + 1) % 3;
 	}
+
+	last_snap.window = window;
+	last_snap.type = type;
+	last_snap.base = base;
+	last_snap.repeat = snap_repeat;
 
 	switch (base) {
 	case SNAP_BASE::BY_DIRECTION_ONLY:
@@ -97,23 +102,38 @@ void WindowManager::snap_window(SNAP_TYPE type, SNAP_BASE base) {
 		}
 
 		break;
-	default: // SNAP_FULL same as monitor size
+	case SNAP_TYPE::SNAP_FULL:
+		PostMessage(window, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
+		return;
+		break;
+	default:
+		return;
 		break;
 	}
 
 	dprintf("\n");
 	dprintrect("mon", &mon_rect);
 	dprintrect("win", &win_rect);
+	dprintrect("cli", &cli_rect);
 	dprintrect("margin", &new_window.margin);
 	dprintrect("new", &new_window.rect);
 
-	if (!SetWindowPos(window, NULL, new_window.x(), new_window.y(), new_window.width(), new_window.height(), 0)) {
-		TRACE("SetWindowPos() failed");
+	// ShowWindow(window, SW_SHOWNORMAL) and SetWindowPos()
+	WINDOWPLACEMENT placement;
+	placement.length = sizeof(WINDOWPLACEMENT);
+	placement.ptMaxPosition = {-1,-1};
+	placement.ptMinPosition = {0,0};
+	placement.flags = 0;
+	placement.showCmd = SW_SHOWNORMAL; // for not maximize
+	placement.rcNormalPosition = new_window.rect;
+
+	if(!SetWindowPlacement(window, &placement)) {
+		TRACE("SetWindowPlacement() failed");
 		return;
 	}
 
 	// between two different DPI monitor, margin causes error in size and position
-	// if the result window is not the desired one, retry SetWindowPos with margin
+	// if the result window is not the desired one, retry with margin
 	GetWindowRect(window, &win_rect);
 	dprintrect("win", &win_rect);
 
@@ -149,9 +169,5 @@ void WindowManager::snap_window(SNAP_TYPE type, SNAP_BASE base) {
 		GetWindowRect(window, &win_rect);
 	}
 
-	last_snap.window = window;
-	last_snap.type = type;
-	last_snap.base = base;
-	last_snap.index = snap_repeat;
 	last_snap.rect = win_rect;
 };

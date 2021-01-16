@@ -17,7 +17,7 @@ struct SnapInfo {
 	HWND window;
 	SNAP_TYPE type;
 	SNAP_BASE base;
-	int index;
+	int repeat;
 	RECT rect;
 };
 
