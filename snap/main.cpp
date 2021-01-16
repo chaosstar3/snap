@@ -7,47 +7,53 @@
 static class WindowManager wm;
 
 static LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
-	if (nCode == HC_ACTION && wParam == WM_KEYDOWN) {
+	if (nCode == HC_ACTION && (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN)) {
 		bool const ctrl = GetAsyncKeyState(VK_CONTROL) & 0x8000;
 		bool const shift = GetAsyncKeyState(VK_SHIFT) & 0x8000;
 		bool const alt = GetAsyncKeyState(VK_MENU) & 0x8000;
 		bool const win = GetAsyncKeyState(VK_LWIN) & 0x8000 || GetAsyncKeyState(VK_RWIN) & 0x8000;
 
 		KBDLLHOOKSTRUCT* kbd = reinterpret_cast<KBDLLHOOKSTRUCT*>(lParam);
-		//dprintf("key C%d S%d A%d W%d %x %x", ctrl, shift, alt, win, kbd->vkCode, kbd->scanCode);
+		//dprintf("key C%d S%d A%d W%d %x %x %x", ctrl, shift, alt, win, kbd->vkCode, kbd->scanCode, kbd->flags);
 
-		enum SNAP_TYPE snap_type = SNAP_TYPE::SNAP_NONE;
+		SNAP_TYPE snap_type = SNAP_TYPE::SNAP_NONE;
 
-		if (win && !ctrl && !alt) {
+		if (win && !ctrl) {
 			if (shift) {
 				switch (kbd->vkCode) {
-				case 0x26: // up
+				case VK_UP: // up
 					snap_type = SNAP_TYPE::SNAP_FULL;
 					break;
-				case 0x28: // down
+				case VK_DOWN: // down
 					snap_type = SNAP_TYPE::SNAP_CENTER;
 					break;
 				}
-			}	else {
+
+				if (snap_type != SNAP_TYPE::SNAP_NONE) {
+					wm.snap_window(snap_type, SNAP_BASE::BY_ENTIRE_MONITOR);
+					return 1;
+				}
+			} else {
 				switch (kbd->vkCode) {
-				case 0x25: // left
+				case VK_LEFT: // left
 					snap_type = SNAP_TYPE::SNAP_LEFT;
 					break;
-				case 0x26: // up
+				case VK_UP: // up
 					snap_type = SNAP_TYPE::SNAP_TOP;
 					break;
-				case 0x27: // right
+				case VK_RIGHT: // right
 					snap_type = SNAP_TYPE::SNAP_RIGHT;
 					break;
-				case 0x28: // down
+				case VK_DOWN: // down
 					snap_type = SNAP_TYPE::SNAP_BOTTOM;
 					break;
 				}
-			}
 
-			if (snap_type != SNAP_TYPE::SNAP_NONE) {
-				wm.snap_window(snap_type);
-				return 1;
+				if (snap_type != SNAP_TYPE::SNAP_NONE) {
+					wm.snap_window(snap_type,
+						alt ? SNAP_BASE::BY_DIRECTION_ONLY : SNAP_BASE::BY_ENTIRE_MONITOR);
+					return 1;
+				}
 			}
 		}
 	}
@@ -111,7 +117,7 @@ int WINAPI _tWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	WNDCLASS wc = { 0, };
 	wc.lpfnWndProc = WndProc;
 	wc.lpszClassName = APPNAME;
-	
+
 	if (!RegisterClass(&wc)) {
 		TRACE("RegisterClass() failed");
 		return -1;

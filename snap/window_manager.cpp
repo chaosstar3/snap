@@ -2,10 +2,8 @@
 #include "debug.h"
 
 #define RECT_EQ(r1, r2) !memcmp(r1, r2, sizeof(RECT))
-#define RECT_WIDTH(r) ((r)->right - (r)->left)
-#define RECT_HEIGHT(r) ((r)->bottom - (r)->top)
 
-void WindowManager::snap_window(SNAP_TYPE type) {
+void WindowManager::snap_window(SNAP_TYPE type, SNAP_BASE base) {
 	HWND window = GetForegroundWindow();
 
 	if (!window) {
@@ -28,7 +26,8 @@ void WindowManager::snap_window(SNAP_TYPE type) {
 		return;
 	}
 
-	RECT mon_rect, win_rect, cli_rect, new_rect;
+	RECT mon_rect, win_rect, cli_rect, margin_rect;
+	MGWindow new_window;
 
 	if (!GetWindowRect(window, &win_rect)) {
 		TRACE("GetWindowRect() failed");
@@ -41,48 +40,60 @@ void WindowManager::snap_window(SNAP_TYPE type) {
 	}
 
 	mon_rect = minfo.rcWork;
-	new_rect = mon_rect;
 
 	int width = RECT_WIDTH(&mon_rect);
 	int height = RECT_HEIGHT(&mon_rect);
+	int margin_width = RECT_WIDTH(&win_rect) - RECT_WIDTH(&cli_rect);
+
+	margin_rect.left = margin_width / 2;
+	margin_rect.right = margin_width / 2 - margin_width;
+	margin_rect.top = 0;
+	margin_rect.bottom = - margin_width / 2;
 
 	int cw[3] = { width / 2, width / 3, width / 3 * 2 };
 	int ch[3] = { height / 2, height / 3, height / 3 * 2 };
-
-	int snap_size_index = 0;
+	int snap_repeat = 0;
 
 	// repeated sequence
 	if (last_snap.window == window &&
 				last_snap.type == type &&
+				last_snap.base == base &&
 				RECT_EQ(&last_snap.rect, &win_rect)) {
-		snap_size_index = (last_snap.index + 1) % 3;
+		snap_repeat = (last_snap.index + 1) % 3;
+	}
+
+	switch (base) {
+	case SNAP_BASE::BY_DIRECTION_ONLY:
+		new_window.set(&win_rect);
+		break;
+	case SNAP_BASE::BY_ENTIRE_MONITOR:
+		new_window.set(&mon_rect, &margin_rect);
+		break;
 	}
 
 	switch (type) {
 	case SNAP_TYPE::SNAP_LEFT:
-		new_rect.right = mon_rect.left + cw[snap_size_index];
+		new_window.set_width(mon_rect.left, cw[snap_repeat], &margin_rect);
 		break;
 	case SNAP_TYPE::SNAP_RIGHT:
-		new_rect.left = mon_rect.right - cw[snap_size_index];
+		new_window.set_width(mon_rect.right - cw[snap_repeat], cw[snap_repeat], &margin_rect);
 		break;
 	case SNAP_TYPE::SNAP_TOP:
-		new_rect.bottom = mon_rect.top + ch[snap_size_index];
+		new_window.set_height(mon_rect.top, ch[snap_repeat], &margin_rect);
 		break;
 	case SNAP_TYPE::SNAP_BOTTOM:
-		new_rect.top = mon_rect.bottom - ch[snap_size_index];
+		new_window.set_height(mon_rect.bottom - ch[snap_repeat], ch[snap_repeat], &margin_rect);
 		break;
 	case SNAP_TYPE::SNAP_CENTER:
 		if (RECT_WIDTH(&mon_rect) > RECT_HEIGHT(&mon_rect)) {
 			// landscape monitor: horizontal center
 			int hcenter = (mon_rect.left + mon_rect.right) / 2;
-			new_rect.left = hcenter - cw[snap_size_index] / 2;
-			new_rect.right = hcenter + cw[snap_size_index] / 2;
+			new_window.set_width(hcenter - cw[snap_repeat] / 2, cw[snap_repeat], &margin_rect);
 		}
 		else {
 			// portrait monitor: vertical center
 			int vcenter = (mon_rect.top + mon_rect.bottom) / 2;
-			new_rect.top = vcenter - ch[snap_size_index] / 2;
-			new_rect.bottom = vcenter + ch[snap_size_index] / 2;
+			new_window.set_height(vcenter - ch[snap_repeat] / 2, ch[snap_repeat], &margin_rect);
 		}
 
 		break;
@@ -90,17 +101,13 @@ void WindowManager::snap_window(SNAP_TYPE type) {
 		break;
 	}
 
-	// adjust client margin
-	int margin = RECT_WIDTH(&win_rect) - RECT_WIDTH(&cli_rect);
-	new_rect.left -= margin / 2;
-	new_rect.right += margin - margin / 2;
-	new_rect.bottom += margin / 2;
-	dprintf("margin %d", margin);
+	dprintf("\n");
 	dprintrect("mon", &mon_rect);
 	dprintrect("win", &win_rect);
-	dprintrect("new", &new_rect);
+	dprintrect("margin", &new_window.margin);
+	dprintrect("new", &new_window.rect);
 
-	if (!SetWindowPos(window, NULL, new_rect.left, new_rect.top, RECT_WIDTH(&new_rect), RECT_HEIGHT(&new_rect), 0)) {
+	if (!SetWindowPos(window, NULL, new_window.x(), new_window.y(), new_window.width(), new_window.height(), 0)) {
 		TRACE("SetWindowPos() failed");
 		return;
 	}
@@ -110,16 +117,41 @@ void WindowManager::snap_window(SNAP_TYPE type) {
 	GetWindowRect(window, &win_rect);
 	dprintrect("win", &win_rect);
 
-	if (!RECT_EQ(&win_rect, &new_rect)) {
-		dprintf("Retry with margin");
-		new_rect.left += margin / 2;
-		new_rect.right -= margin - margin / 2;
-		SetWindowPos(window, NULL, new_rect.left, new_rect.top, RECT_WIDTH(&new_rect), RECT_HEIGHT(&new_rect), 0);
+	bool equal = true;
+
+	if (win_rect.left != new_window.rect.left) {
+		new_window.rect.left += new_window.margin.left;
+		new_window.margin.left = 0;
+		equal = false;
+	}
+
+	if (win_rect.right != new_window.rect.right) {
+		new_window.rect.right += new_window.margin.right;
+		new_window.margin.right = 0;
+		equal = false;
+	}
+
+	if (win_rect.top != new_window.rect.top) {
+		new_window.rect.top += new_window.margin.top;
+		new_window.margin.top = 0;
+		equal = false;
+	}
+
+	if (win_rect.bottom != new_window.rect.bottom) {
+		new_window.rect.bottom += new_window.margin.bottom;
+		new_window.margin.bottom = 0;
+		equal = false;
+	}
+
+	if (!equal) {
+		dprintrect("retry", &new_window.rect);
+		SetWindowPos(window, NULL, new_window.x(), new_window.y(), new_window.width(), new_window.height(), 0);
 		GetWindowRect(window, &win_rect);
 	}
 
 	last_snap.window = window;
 	last_snap.type = type;
-	last_snap.index = snap_size_index;
+	last_snap.base = base;
+	last_snap.index = snap_repeat;
 	last_snap.rect = win_rect;
 };

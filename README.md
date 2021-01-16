@@ -18,12 +18,16 @@ But behavior is based on only left/right half of screen.
 
 ### Keyboard shortcut
 
-| shortcut                     | window |
-|------------------------------|--------|
-| <kbd>win</kbd>+<kbd>←</kbd> | left   |
-| <kbd>win</kbd>+<kbd>→</kbd> | right  |
-| <kbd>win</kbd>+<kbd>↑</kbd> | upper  |
-| <kbd>win</kbd>+<kbd>↓</kbd> | lower  |
+| shortcut                    | window                     |
+|-----------------------------|----------------------------|
+| <kbd>win</kbd>+<kbd>←</kbd> | left portion, full height  |
+| <kbd>win</kbd>+<kbd>→</kbd> | right portion, full height |
+| <kbd>win</kbd>+<kbd>↑</kbd> | upper portion, full width  |
+| <kbd>win</kbd>+<kbd>↓</kbd> | lower portion, full width  |
+| <kbd>win</kbd>+<kbd>alt</kbd>+<kbd>←</kbd> | left portion, current height  |
+| <kbd>win</kbd>+<kbd>alt</kbd>+<kbd>→</kbd> | right portion, current height |
+| <kbd>win</kbd>+<kbd>alt</kbd>+<kbd>↑</kbd> | upper portion, current width  |
+| <kbd>win</kbd>+<kbd>alt</kbd>+<kbd>↓</kbd> | lower portion, current width  |
 | <kbd>win</kbd>+<kbd>shift</kbd> + <kbd>↑</kbd> | full |
 | <kbd>win</kbd>+<kbd>shift</kbd> + <kbd>↓</kbd> | landscape: horizontal center<br>portrait: vertical center |
 
