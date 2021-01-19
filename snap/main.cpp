@@ -106,13 +106,6 @@ int WINAPI _tWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 		return 1;
 	}
 
-	if (!SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2))
-	{
-		TRACE("SetProcessDpiAwarenessContext() failed");
-		return -1;
-	}
-
-
 	// create main Window
 	WNDCLASS wc = { 0, };
 	wc.lpfnWndProc = WndProc;

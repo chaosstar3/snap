@@ -11,6 +11,11 @@ void WindowManager::snap_window(SNAP_TYPE type, SNAP_BASE base) {
 		return;
 	}
 
+	if(SetThreadDpiAwarenessContext(GetWindowDpiAwarenessContext(window)) == NULL) {
+		TRACE("DpiAwareness failed");
+		return;
+	}
+
 	HMONITOR monitor = MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST);
 
 	if (!monitor) {
@@ -132,42 +137,7 @@ void WindowManager::snap_window(SNAP_TYPE type, SNAP_BASE base) {
 		return;
 	}
 
-	// between two different DPI monitor, margin causes error in size and position
-	// if the result window is not the desired one, retry with margin
 	GetWindowRect(window, &win_rect);
 	dprintrect("win", &win_rect);
-
-	bool equal = true;
-
-	if (win_rect.left != new_window.rect.left) {
-		new_window.rect.left += new_window.margin.left;
-		new_window.margin.left = 0;
-		equal = false;
-	}
-
-	if (win_rect.right != new_window.rect.right) {
-		new_window.rect.right += new_window.margin.right;
-		new_window.margin.right = 0;
-		equal = false;
-	}
-
-	if (win_rect.top != new_window.rect.top) {
-		new_window.rect.top += new_window.margin.top;
-		new_window.margin.top = 0;
-		equal = false;
-	}
-
-	if (win_rect.bottom != new_window.rect.bottom) {
-		new_window.rect.bottom += new_window.margin.bottom;
-		new_window.margin.bottom = 0;
-		equal = false;
-	}
-
-	if (!equal) {
-		dprintrect("retry", &new_window.rect);
-		SetWindowPos(window, NULL, new_window.x(), new_window.y(), new_window.width(), new_window.height(), 0);
-		GetWindowRect(window, &win_rect);
-	}
-
 	last_snap.rect = win_rect;
 };
