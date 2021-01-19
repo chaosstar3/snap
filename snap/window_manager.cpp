@@ -157,6 +157,20 @@ void snap_window(HWND window, SNAP_TYPE type, SNAP_BASE base) {
 	dprintrect("mon", mon_lprect);
 	dprintrect("new", &placement.rcNormalPosition);
 
-	GetWindowRect(window, &last_snap.rect);
-	dprintrect("win", &last_snap.rect);
+	last_snap.rect = win_rect;
+	get_window_rect(window, &win_rect, &border);
+
+	if(!RECT_EQ(&border, &new_window.border)) {
+		// border size could be changed when window is restored from maximized
+		// retry snap with new border
+		new_window.border = border;
+		new_window.get_rect(&placement.rcNormalPosition);
+		SetWindowPlacement(window, &placement);
+		GetWindowRect(window, &win_rect);
+
+		dprintrect("retry", &placement.rcNormalPosition);
+		dprintrect("win", &win_rect);
+	}
+
+	last_snap.rect = win_rect;
 };
