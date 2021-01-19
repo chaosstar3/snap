@@ -4,8 +4,6 @@
 #include "debug.h"
 #include "window_manager.h"
 
-static class WindowManager wm;
-
 static LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
 	if (nCode == HC_ACTION && (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN)) {
 		bool const ctrl = GetAsyncKeyState(VK_CONTROL) & 0x8000;
@@ -16,6 +14,7 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lP
 		KBDLLHOOKSTRUCT* kbd = reinterpret_cast<KBDLLHOOKSTRUCT*>(lParam);
 		//dprintf("key C%d S%d A%d W%d %x %x %x", ctrl, shift, alt, win, kbd->vkCode, kbd->scanCode, kbd->flags);
 
+		HWND window = GetForegroundWindow();
 		SNAP_TYPE snap_type = SNAP_TYPE::SNAP_NONE;
 
 		if (win && !ctrl) {
@@ -30,7 +29,7 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lP
 				}
 
 				if (snap_type != SNAP_TYPE::SNAP_NONE) {
-					wm.snap_window(snap_type, SNAP_BASE::BY_ENTIRE_MONITOR);
+					snap_window(window, snap_type, SNAP_BASE::BY_ENTIRE_MONITOR);
 					return 1;
 				}
 			} else {
@@ -50,7 +49,7 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lP
 				}
 
 				if (snap_type != SNAP_TYPE::SNAP_NONE) {
-					wm.snap_window(snap_type,
+					snap_window(window, snap_type,
 						alt ? SNAP_BASE::BY_DIRECTION_ONLY : SNAP_BASE::BY_ENTIRE_MONITOR);
 					return 1;
 				}

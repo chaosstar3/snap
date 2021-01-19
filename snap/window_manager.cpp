@@ -3,17 +3,55 @@
 
 #define RECT_EQ(r1, r2) !memcmp(r1, r2, sizeof(RECT))
 
-void WindowManager::snap_window(SNAP_TYPE type, SNAP_BASE base) {
-	HWND window = GetForegroundWindow();
+struct SnapInfo {
+	HWND window;
+	SNAP_TYPE type;
+	SNAP_BASE base;
+	int repeat;
+	RECT rect;
+};
 
-	if(!window) {
-		TRACE("GetForegroundWindow() failed");
-		return;
+static struct SnapInfo last_snap;
+
+int get_window_rect(HWND window, LPRECT win_rect, LPRECT border) {
+	if(SetThreadDpiAwarenessContext(GetWindowDpiAwarenessContext(window)) == NULL) {
+		TRACE("DpiAwareness failed");
+		return -1;
 	}
 
+	WINDOWINFO winfo;
+	winfo.cbSize = sizeof(WINDOWINFO);
+
+	if(!GetWindowInfo(window, &winfo)) {
+		TRACE("GetWindowInfo() failed");
+		return -1;
+	}
+
+	*win_rect = winfo.rcWindow;
+	border->left = min(winfo.rcClient.left - winfo.rcWindow.left, (LONG)winfo.cxWindowBorders);
+	border->right = min(winfo.rcWindow.right - winfo.rcClient.right, (LONG)winfo.cxWindowBorders);
+	border->top = 0;
+	border->bottom = min(winfo.rcWindow.bottom - winfo.rcClient.bottom, (LONG)winfo.cyWindowBorders);
+
+	dprintf("\n[WINDOW]");
+	dprintrect("win", &winfo.rcWindow);
+	dprintrect("cli", &winfo.rcClient);
+	dprintf("border %d %d %d %d, %d %d",
+		winfo.rcClient.left - winfo.rcWindow.left,
+		winfo.rcWindow.right - winfo.rcClient.right,
+		winfo.rcClient.top - winfo.rcWindow.top,
+		winfo.rcWindow.bottom - winfo.rcClient.bottom,
+		winfo.cxWindowBorders, winfo.cyWindowBorders
+	);
+
+	return 0;
+}
+
+void snap_window(HWND window, SNAP_TYPE type, SNAP_BASE base) {
 	// SNAP_FULL use maximize
 	if(type == SNAP_TYPE::SNAP_FULL) {
 		PostMessage(window, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
+		last_snap = {window, type, base, 0};
 		return;
 	}
 
@@ -36,20 +74,12 @@ void WindowManager::snap_window(SNAP_TYPE type, SNAP_BASE base) {
 		return;
 	}
 
-	WINDOWINFO winfo;
-	winfo.cbSize = sizeof(WINDOWINFO);
+	LPRECT mon_lprect = &minfo.rcWork;
+	RECT win_rect, border;
 
-	if(!GetWindowInfo(window, &winfo)) {
-		TRACE("GetWindowInfo() failed");
+	if(get_window_rect(window, &win_rect, &border) != 0) {
 		return;
 	}
-
-	RECT border;
-	border.left = min(winfo.rcClient.left - winfo.rcWindow.left, (LONG)winfo.cxWindowBorders);
-	border.right = min(winfo.rcWindow.right - winfo.rcClient.right, (LONG)winfo.cxWindowBorders);
-	border.top = 0;
-	border.bottom = min(winfo.rcWindow.bottom - winfo.rcClient.bottom, (LONG)winfo.cyWindowBorders);
-
 
 	int width = RECT_WIDTH(&minfo.rcWork);
 	int height = RECT_HEIGHT(&minfo.rcWork);
@@ -61,23 +91,18 @@ void WindowManager::snap_window(SNAP_TYPE type, SNAP_BASE base) {
 	if(last_snap.window == window &&
 				last_snap.type == type &&
 				last_snap.base == base &&
-				RECT_EQ(&last_snap.rect, &winfo.rcWindow)) {
+				RECT_EQ(&last_snap.rect, &win_rect)) {
 		snap_repeat = (last_snap.repeat + 1) % 3;
 	}
 
-	last_snap.window = window;
-	last_snap.type = type;
-	last_snap.base = base;
-	last_snap.repeat = snap_repeat;
+	last_snap = {window, type, base, snap_repeat};
 
 
 	Window new_window;
-	LPRECT mon_lprect = &minfo.rcWork;
-	LPRECT win_lprect = &winfo.rcWindow;
 
 	switch(base) {
 	case SNAP_BASE::BY_DIRECTION_ONLY:
-		new_window.init(win_lprect, &border, false);
+		new_window.init(&win_rect, &border, false);
 		break;
 	case SNAP_BASE::BY_ENTIRE_MONITOR:
 		new_window.init(mon_lprect, &border, true);
@@ -129,17 +154,8 @@ void WindowManager::snap_window(SNAP_TYPE type, SNAP_BASE base) {
 	}
 
 	dprintf("\n[SNAP]");
-	dprintf("border %d %d %d %d, %d %d",
-		winfo.rcClient.left - winfo.rcWindow.left,
-		winfo.rcClient.right - winfo.rcWindow.right,
-		winfo.rcClient.top - winfo.rcWindow.top,
-		winfo.rcClient.bottom - winfo.rcWindow.bottom,
-		winfo.cxWindowBorders, winfo.cyWindowBorders
-	);
 	dprintrect("mon", mon_lprect);
-	dprintrect("win", &winfo.rcWindow);
-	dprintrect("new", &new_window.rect);
-	dprintf("%d %d", new_window.isborder.width, new_window.isborder.height);
+	dprintrect("new", &placement.rcNormalPosition);
 
 	GetWindowRect(window, &last_snap.rect);
 	dprintrect("win", &last_snap.rect);

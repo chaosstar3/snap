@@ -13,13 +13,6 @@ enum class SNAP_BASE {
 	BY_ENTIRE_MONITOR, BY_DIRECTION_ONLY
 };
 
-struct SnapInfo {
-	HWND window;
-	SNAP_TYPE type;
-	SNAP_BASE base;
-	int repeat;
-	RECT rect;
-};
 
 // window with border
 struct Window {
@@ -90,9 +83,5 @@ public:
 	}
 };
 
-class WindowManager {
-public:
-	struct SnapInfo last_snap;
-
-	void snap_window(SNAP_TYPE, SNAP_BASE);
-};
+void snap_window(HWND window, SNAP_TYPE type, SNAP_BASE base);
+int get_window_rect(HWND window, LPRECT win_rect, LPRECT margin_rect);
