@@ -21,60 +21,39 @@ struct SnapInfo {
 	RECT rect;
 };
 
-// window with margin
-class MGWindow {
+// window with border
+struct Window {
 public:
 	RECT rect;
-	RECT margin;
-
-	MGWindow() {
-		rect = {0,0,0,0};
-		margin = {0,0,0,0};
-	}
-
-	MGWindow(LPRECT rect) {
-		this->rect = *rect;
-		margin = {0,0,0,0};
-	}
+	RECT border;
 
 	void set(LPRECT rect) {
 		this->rect = *rect;
 	}
 
-	void set(LPRECT rect, LPRECT margin) {
-		this->rect.left = rect->left - margin->left;
-		this->margin.left = margin->left;
-		this->rect.right = rect->right - margin->right;
-		this->margin.right = margin->right;
-		this->rect.top = rect->top - margin->top;
-		this->margin.top = margin->top;
-		this->rect.bottom = rect->bottom - margin->bottom;
-		this->margin.bottom = margin->bottom;
+	void set(LPRECT rect, LPRECT border) {
+		this->rect.left = rect->left - border->left;
+		this->border.left = border->left;
+		this->rect.right = rect->right - border->right;
+		this->border.right = border->right;
+		this->rect.top = rect->top - border->top;
+		this->border.top = border->top;
+		this->rect.bottom = rect->bottom - border->bottom;
+		this->border.bottom = border->bottom;
 	}
 
-	void set_margin(LPRECT margin) {
-		rect.left -= margin->left;
-		this->margin.left = margin->left;
-		rect.right -= margin->right;
-		this->margin.right = margin->right;
-		rect.top -= margin->top;
-		this->margin.top = margin->top;
-		rect.bottom -= margin->bottom;
-		this->margin.bottom = margin->bottom;
+	void set_width(LONG left, LONG width, LPRECT border) {
+		rect.left = left - border->left;
+		this->border.left = border->left;
+		rect.right = left + width - border->right;
+		this->border.right = border->right;
 	}
 
-	void set_width(LONG left, LONG width, LPRECT margin) {
-		rect.left = left - margin->left;
-		this->margin.left = margin->left;
-		rect.right = left + width - margin->right;
-		this->margin.right = margin->right;
-	}
-
-	void set_height(LONG top, LONG height, LPRECT margin) {
-		rect.top = top - margin->top;
-		this->margin.top = margin->top;
-		rect.bottom = top + height - margin->bottom;
-		this->margin.bottom = margin->bottom;
+	void set_height(LONG top, LONG height, LPRECT border) {
+		rect.top = top - border->top;
+		this->border.top = border->top;
+		rect.bottom = top + height - border->bottom;
+		this->border.bottom = border->bottom;
 	}
 
 	LONG x() {
