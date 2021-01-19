@@ -26,50 +26,67 @@ struct Window {
 public:
 	RECT rect;
 	RECT border;
+	// border is applies or not
+	struct {
+		bool width;
+		bool height;
+	} isborder;
 
-	void set(LPRECT rect) {
+	void init(LPRECT rect, LPRECT border, bool isborder) {
 		this->rect = *rect;
+		this->border = *border;
+		this->isborder.width = isborder;
+		this->isborder.height = isborder;
 	}
 
-	void set(LPRECT rect, LPRECT border) {
-		this->rect.left = rect->left - border->left;
-		this->border.left = border->left;
-		this->rect.right = rect->right - border->right;
-		this->border.right = border->right;
-		this->rect.top = rect->top - border->top;
-		this->border.top = border->top;
-		this->rect.bottom = rect->bottom - border->bottom;
-		this->border.bottom = border->bottom;
+	void set_width(LONG left, LONG width) {
+		rect.left = left;
+		rect.right = left + width;
+		isborder.width = true;
 	}
 
-	void set_width(LONG left, LONG width, LPRECT border) {
-		rect.left = left - border->left;
-		this->border.left = border->left;
-		rect.right = left + width - border->right;
-		this->border.right = border->right;
-	}
-
-	void set_height(LONG top, LONG height, LPRECT border) {
-		rect.top = top - border->top;
-		this->border.top = border->top;
-		rect.bottom = top + height - border->bottom;
-		this->border.bottom = border->bottom;
+	void set_height(LONG top, LONG height) {
+		rect.top = top;
+		rect.bottom = top + height;
+		isborder.height = true;
 	}
 
 	LONG x() {
-		return rect.left;
+		LONG adjust = isborder.width ? border.left : 0;
+		return rect.left - adjust;
 	}
 
 	LONG y() {
-		return rect.top;
+		LONG adjust = isborder.height ? border.top : 0;
+		return rect.top - adjust;
 	}
 
 	LONG width() {
-		return RECT_WIDTH(&rect);
+		LONG adjust = isborder.width ? border.left + border.right : 0;
+		return RECT_WIDTH(&rect) + adjust;
 	}
 
 	LONG height() {
-		return RECT_HEIGHT(&rect);
+		LONG adjust = isborder.height ? border.top + border.bottom : 0;
+		return RECT_HEIGHT(&rect) + adjust;
+	}
+
+	void get_rect(LPRECT out) {
+		if(isborder.width) {
+			out->left = rect.left - border.left;
+			out->right = rect.right + border.right;
+		} else {
+			out->left = rect.left;
+			out->right = rect.right;
+		}
+
+		if(isborder.height) {
+			out->top = rect.top - border.top;
+			out->bottom = rect.bottom + border.bottom;
+		} else {
+			out->top = rect.top;
+			out->bottom = rect.bottom;
+		}
 	}
 };
 

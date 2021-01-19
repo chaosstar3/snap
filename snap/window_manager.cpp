@@ -46,9 +46,9 @@ void WindowManager::snap_window(SNAP_TYPE type, SNAP_BASE base) {
 
 	RECT border;
 	border.left = min(winfo.rcClient.left - winfo.rcWindow.left, (LONG)winfo.cxWindowBorders);
-	border.right = max(winfo.rcClient.right - winfo.rcWindow.right, -(LONG)winfo.cxWindowBorders);
+	border.right = min(winfo.rcWindow.right - winfo.rcClient.right, (LONG)winfo.cxWindowBorders);
 	border.top = 0;
-	border.bottom = max(winfo.rcClient.bottom - winfo.rcWindow.bottom, -(LONG)winfo.cyWindowBorders);
+	border.bottom = min(winfo.rcWindow.bottom - winfo.rcClient.bottom, (LONG)winfo.cyWindowBorders);
 
 
 	int width = RECT_WIDTH(&minfo.rcWork);
@@ -77,36 +77,36 @@ void WindowManager::snap_window(SNAP_TYPE type, SNAP_BASE base) {
 
 	switch(base) {
 	case SNAP_BASE::BY_DIRECTION_ONLY:
-		new_window.set(win_lprect);
+		new_window.init(win_lprect, &border, false);
 		break;
 	case SNAP_BASE::BY_ENTIRE_MONITOR:
-		new_window.set(mon_lprect, &border);
+		new_window.init(mon_lprect, &border, true);
 		break;
 	}
 
 	switch(type) {
 	case SNAP_TYPE::SNAP_LEFT:
-		new_window.set_width(mon_lprect->left, cw[snap_repeat], &border);
+		new_window.set_width(mon_lprect->left, cw[snap_repeat]);
 		break;
 	case SNAP_TYPE::SNAP_RIGHT:
-		new_window.set_width(mon_lprect->right - cw[snap_repeat], cw[snap_repeat], &border);
+		new_window.set_width(mon_lprect->right - cw[snap_repeat], cw[snap_repeat]);
 		break;
 	case SNAP_TYPE::SNAP_TOP:
-		new_window.set_height(mon_lprect->top, ch[snap_repeat], &border);
+		new_window.set_height(mon_lprect->top, ch[snap_repeat]);
 		break;
 	case SNAP_TYPE::SNAP_BOTTOM:
-		new_window.set_height(mon_lprect->bottom - ch[snap_repeat], ch[snap_repeat], &border);
+		new_window.set_height(mon_lprect->bottom - ch[snap_repeat], ch[snap_repeat]);
 		break;
 	case SNAP_TYPE::SNAP_CENTER:
 		if (RECT_WIDTH(mon_lprect) > RECT_HEIGHT(mon_lprect)) {
 			// landscape monitor: horizontal center
 			int hcenter = (mon_lprect->left + mon_lprect->right) / 2;
-			new_window.set_width(hcenter - cw[snap_repeat] / 2, cw[snap_repeat], &border);
+			new_window.set_width(hcenter - cw[snap_repeat] / 2, cw[snap_repeat]);
 		}
 		else {
 			// portrait monitor: vertical center
 			int vcenter = (mon_lprect->top + mon_lprect->bottom) / 2;
-			new_window.set_height(vcenter - ch[snap_repeat] / 2, ch[snap_repeat], &border);
+			new_window.set_height(vcenter - ch[snap_repeat] / 2, ch[snap_repeat]);
 		}
 
 		break;
@@ -121,7 +121,7 @@ void WindowManager::snap_window(SNAP_TYPE type, SNAP_BASE base) {
 	placement.ptMinPosition = {0,0};
 	placement.flags = 0;
 	placement.showCmd = SW_SHOWNORMAL; // for not maximize
-	placement.rcNormalPosition = new_window.rect;
+	new_window.get_rect(&placement.rcNormalPosition);
 
 	if(!SetWindowPlacement(window, &placement)) {
 		TRACE("SetWindowPlacement() failed");
@@ -138,8 +138,8 @@ void WindowManager::snap_window(SNAP_TYPE type, SNAP_BASE base) {
 	);
 	dprintrect("mon", mon_lprect);
 	dprintrect("win", &winfo.rcWindow);
-	dprintrect("new window", &new_window.rect);
-	dprintrect("new border", &new_window.border);
+	dprintrect("new", &new_window.rect);
+	dprintf("%d %d", new_window.isborder.width, new_window.isborder.height);
 
 	GetWindowRect(window, &last_snap.rect);
 	dprintrect("win", &last_snap.rect);
